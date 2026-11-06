@@ -4,7 +4,7 @@ const {arenaChannelFlattened,
     arenaAddToChannel,
     arenaChannelMetadata,
     arenaChannelUpdateMetadata} = require('./lib')
-const bearer_token = ''
+const bearer_token = process.argv[2]
 const gates = {
     'add': (arg1, arg2) => {
       return parseInt(arg1) + parseInt(arg2)
@@ -17,13 +17,98 @@ const gates = {
     },
     'arena_post_block': (arg1, arg2) => {
         console.log('posting')  
+        console.log(bearer_token)
+        console.log(arg1)
+        let pv1 = 'nero_m'
+        let pv2 = 'rick'
+        
+        let hp_pv1
+        let hp_pv2
+        
+        let pv_b1 = {}
+        let pv_b2 = {}
+        
+        arenaBlocks(arg1, bearer_token, 1).then(ab => {
+            for(let i = 0; i < ab.data.length; i++){
+                if(ab.data[i].title.includes('round')){
+                    console.log(ab.data[i])
+                    hp_pv1 = ab.data[i].metadata.hp_pv1
+                    hp_pv2 = ab.data[i].metadata.hp_pv2
+                }
+            }
+            
+            // console.log(hp_pv1)
+            // console.log(hp_pv2)
+            
+            const placements_pv1 = []
+            const placements_pv2 = []
+            
+            arenaBlocks(arg1, bearer_token, 1).then(ab => {
+                for(let i = 0; i < ab.data.length; i++){
+                    if(ab.data[i].title.includes('round')){
+                        break
+                    } else {
+                        const placement = JSON.parse(ab.data[i].metadata.placement)
+                        const placement_att = JSON.parse(ab.data[i].metadata.attack_place)
+                        if(ab.data[i].user.username == pv1){
+                            placements_pv1.push({p: placement, def: placement_att})
+                        }
+                        
+                        if(ab.data[i].user.username == pv2){
+                            placements_pv2.push({p: placement, def: placement_att})
+                        }
+                    
+                    }
+                }
+                
+                for(let i = 0; i < ab.data.length && !ab.data[i].title.includes('round'); i++){
+                
+                        // need to duplicate for player 2
+                        const filteredArray1 = placements_pv1.map( p => p.p.filter(value => {
+                            return JSON.parse(ab.data[i].metadata.attack_place).includes(value)
+                        }));
+                        
+                        console.log(filteredArray1)
+                        
+                        if(filteredArray1){
+                            if(ab.data[i].user.username == pv1){
+                                hp_pv2 -= ab.data[i].metadata.attack
+                            } else {
+                                hp_pv1 -= ab.data[i].metadata.attack
+                            }
+                        }
+                }
+    
+                
+                const block = {
+                    value: 'hp '+hp_pv1+'\nhp ' + hp_pv2,
+                    title: 'round '+arg2,
+                    metadata: {hp_pv1: hp_pv1, hp_pv2: hp_pv2}
+                }
+                console.log(block)
+                arenaUploadBlock([arg1], block, bearer_token) 
+                
+             })
+        })
+        
+
         // get previous blocks, update hp
-        const block = {
-            value: 'hp 100\nhp 100',
-            title: 'round '+arg2,
-            metadata: {hp_pv1: 100, hp_pv2: 100}
-        }
-        arenaUploadBlock([arg1], block, bearer_token) 
+        //  const block = {
+        //     // value: 'https://images.are.na/eyJidWNrZXQiOiJhcmVuYV9pbWFnZXMiLCJrZXkiOiI1MTAxNjM3Ni9vcmlnaW5hbF9lYjJiYWYyMjkyOTJkNzMyYmMwMGQ5NGVmZTY1MDdlNy53ZWJwIiwiZWRpdHMiOnsicmVzaXplIjp7IndpZHRoIjoxMjAwLCJoZWlnaHQiOjEyMDAsImZpdCI6Imluc2lkZSIsIndpdGhvdXRFbmxhcmdlbWVudCI6dHJ1ZX0sIndlYnAiOnsicXVhbGl0eSI6NzV9LCJqcGVnIjp7InF1YWxpdHkiOjc1fSwicm90YXRlIjpudWxsfX0=',
+        //     title: 'historic shanks',
+        //     description: JSON.stringify({attack: 25, attack_place: JSON.stringify(['a', 'd']), placement: JSON.stringify(['a','w','d'])}),
+        //     metadata: {attack: 20, attack_place: JSON.stringify(['a', 'd']), placement: JSON.stringify(['a','w','d'])}
+        // }
+        
+        // // get previous blocks, update hp
+        //  const block = {
+        //     value: JSON.stringify({hp_pv1: 100, hp_pv2: 100}),
+        //     title: 'round '+arg2,
+        //     metadata: {hp_pv1: 100, hp_pv2: 100}
+        // }
+        
+        // arenaUploadBlock(['fest-inventory'], block, bearer_token) 
+        
         return Number(arg2) + 1
     },
     '@': (arg) => {
@@ -248,7 +333,7 @@ let hoon12 = "|=  a=@ud  =/  b  4  =/  counter  0  |-  ?:  :-  gth  counter  a  
 
 const verbose = false
 
-let hoon13 = "|=  a=@ud  =/  counter  1  =/  b  2  |-  ?:  :-  gth  counter  a  counter  %=  $  counter  :-  arena_post_block  fest-_x97es5kzm8  counter  wait  100000  =="
+let hoon13 = "|=  a=@ud  =/  counter  3  =/  b  2  |-  ?:  :-  gth  counter  a  counter  %=  $  counter  :-  arena_post_block  fest-_x97es5kzm8  counter  wait  100000  =="
 ;
 (async () => {
     console.log(await compiler(hoon13, 0, verbose)(6))/ true

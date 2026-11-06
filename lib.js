@@ -63,6 +63,7 @@ async function arenaChannelFlattened(slug, bearerToken, maxLayers = 3, layers = 
 
 async function arenaUploadBlock(slugs, block, bearerToken) {
     try{
+        if(!block.description) block.description = ''
         const res = await fetch(`https://api.are.na/v3/blocks`,{
            method: 'post',
            headers: {
@@ -73,7 +74,8 @@ async function arenaUploadBlock(slugs, block, bearerToken) {
                channel_ids: slugs,
                value: block.value,
                title: block.title,
-               metadata: block.metadata
+               metadata: block.metadata,
+               description: block.description
            })
         });
 
